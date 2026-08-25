@@ -2,8 +2,9 @@
 
 Run with: uvicorn software.ori.pi_server:app --host 0.0.0.0 --port 8000
 
-This server intentionally accepts high-level intents. Pico controllers own
-real-time actuator timing and their own watchdogs.
+Control sources are concurrent inputs, not mutually-exclusive modes. Auto-pilot
+can remain active while browser or voice temporarily supplies a higher-priority
+intent. Pico controllers remain responsible for real-time actuation/watchdogs.
 """
 
 from __future__ import annotations
@@ -17,15 +18,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from software.ori.core.control_sources import ControlArbiter
+from software.ori.core.voice import parse_voice
 
 app = FastAPI(title="Ori Pi API", version="1.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
 arbiter = ControlArbiter()
 clients: set[WebSocket] = set()
@@ -50,6 +46,10 @@ class SourceHeartbeat(BaseModel):
     ttl_s: float = Field(default=1.5, ge=0.1, le=10.0)
 
 
+class VoiceRequest(BaseModel):
+    text: str
+
+
 def snapshot() -> dict[str, Any]:
     selected = arbiter.select()
     return {
@@ -63,7 +63,7 @@ def snapshot() -> dict[str, Any]:
 
 async def broadcast() -> None:
     message = snapshot()
-    dead: list[WebSocket] = []
+    dead = []
     for ws in clients:
         try:
             await ws.send_json(message)
@@ -87,17 +87,14 @@ async def command(command: Command) -> dict[str, Any]:
     if command.type == "safe":
         arbiter.safe()
     elif command.type == "auto_start":
-        state["auto_pilot"]["enabled"] = True
-        state["auto_pilot"]["running"] = True
+        state["auto_pilot"].update(enabled=True, running=True)
         arbiter.submit("auto", "auto_hold", {}, ttl_s=3600)
     elif command.type == "auto_stop":
-        state["auto_pilot"]["enabled"] = False
-        state["auto_pilot"]["running"] = False
+        state["auto_pilot"].update(enabled=False, running=False)
         arbiter.clear("auto")
     elif command.type in {"drive", "stand", "sit", "arm", "head", "tool", "look"}:
-        if arbiter.select() and arbiter.select().source == "safety":
-            # A normal command cannot silently clear safety. Explicitly releasing
-            # safety is a separate action so a stale browser/voice command cannot move Ori.
+        selected = arbiter.select()
+        if selected and selected.source == "safety":
             raise HTTPException(409, "Ori is safe; explicitly release safety first")
         ttl = 0.35 if command.type == "drive" else 2.0
         arbiter.submit(source, command.type, command.payload, ttl_s=ttl)
@@ -105,7 +102,19 @@ async def command(command: Command) -> dict[str, Any]:
         raise HTTPException(400, f"unknown command: {command.type}")
 
     await broadcast()
-    return {"accepted": True, "selected_source": arbiter.select().source if arbiter.select() else None}
+    selected = arbiter.select()
+    return {"accepted": True, "selected_source": selected.source if selected else None}
+
+
+@app.post("/api/v1/voice")
+async def voice(request: VoiceRequest) -> dict[str, Any]:
+    parsed = parse_voice(request.text)
+    if parsed is None:
+        return {"accepted": False, "reason": "unrecognized", "text": request.text}
+    command_type, payload = parsed
+    payload["source"] = "voice"
+    result = await command(Command(type=command_type, payload=payload))
+    return {**result, "text": request.text, "intent": command_type}
 
 
 @app.post("/api/v1/safe")
@@ -138,11 +147,8 @@ async def telemetry(websocket: WebSocket) -> None:
     try:
         await websocket.send_json(snapshot())
         while True:
-            # Browser messages are optional; the Pi remains authoritative.
             await websocket.receive_text()
-    except WebSocketDisconnect:
-        clients.discard(websocket)
-    except Exception:
+    except (WebSocketDisconnect, Exception):
         clients.discard(websocket)
 
 
