@@ -3,72 +3,76 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#102a24">
-  <title>Ori Control Center</title>
+  <meta name="theme-color" content="#08110f">
+  <title>Ori Pilot</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <header class="topbar">
-    <div>
-      <div class="eyebrow">ORI ROBOT DOG</div>
-      <h1>Control Center</h1>
-    </div>
-    <div class="connection" id="connectionBadge"><span></span> SIMULATION</div>
+    <div><div class="eyebrow">ORI ROBOT DOG</div><h1>Pilot</h1></div>
+    <div class="connection" id="connectionBadge"><span></span><b id="connectionText">OFFLINE</b></div>
   </header>
 
   <main class="dashboard">
-    <section class="hero card">
-      <div class="hero-copy">
-        <span class="status-pill" id="systemStatus">SAFE</span>
-        <h2>Ori is ready.</h2>
-        <p>This browser app is the high-level interface prototype. It currently runs safely in simulation mode—no physical servo commands are sent.</p>
+    <section class="pilot card">
+      <div class="camera-panel">
+        <div class="camera-header"><span>LIVE CAMERA</span><span id="videoStatus">NO SIGNAL</span></div>
+        <div class="video-frame">
+          <video id="camera" autoplay playsinline muted></video>
+          <div class="camera-placeholder" id="cameraPlaceholder"><div class="camera-icon">◉</div><strong>ORI CAMERA</strong><span>Waiting for Pi camera stream</span></div>
+          <div class="crosshair"></div>
+          <div class="video-hud"><span>PI 3</span><span id="latency">-- ms</span></div>
+        </div>
+      </div>
+
+      <aside class="pilot-controls">
+        <div class="control-title"><span class="status-pill" id="systemStatus">SAFE</span><span id="controlMode">SIMULATION</span></div>
+        <h2>Drive Ori</h2>
+        <p class="muted">Drone-style live-camera control. The browser sends movement intents to the Pi API; the Pi and Picos remain responsible for real-time motor control and safety.</p>
+        <div class="drive-pad" aria-label="drive controls">
+          <button data-drive="forward" class="drive up">▲</button>
+          <button data-drive="left" class="drive left">◀</button>
+          <button data-drive="stop" class="drive stop">■</button>
+          <button data-drive="right" class="drive right">▶</button>
+          <button data-drive="backward" class="drive down">▼</button>
+        </div>
         <div class="actions">
           <button class="primary" id="standBtn">Stand</button>
           <button id="sitBtn">Sit</button>
-          <button class="danger" id="safeBtn">Safe</button>
+          <button class="danger" id="safeBtn">SAFE</button>
         </div>
-      </div>
-      <div class="robot-stage" aria-label="Ori robot status visualization">
-        <div class="robot-glow"></div>
-        <div class="robot-icon">🐕</div>
-        <div class="stage-label">PI 3 • PICO SIM</div>
-      </div>
+        <div class="api-row"><label for="apiBase">Pi API</label><input id="apiBase" value="http://ori.local:8000" spellcheck="false"><button id="connectBtn">Connect</button></div>
+      </aside>
     </section>
 
     <section class="grid">
       <article class="card">
-        <div class="card-title"><h3>System</h3><span class="dot good"></span></div>
+        <div class="card-title"><h3>System</h3><span class="dot good" id="systemDot"></span></div>
         <div class="metric"><span>Mode</span><strong id="mode">SAFE</strong></div>
-        <div class="metric"><span>Controller</span><strong>Pico simulator</strong></div>
-        <div class="metric"><span>Telemetry</span><strong id="telemetry">Live</strong></div>
+        <div class="metric"><span>Pi</span><strong id="piStatus">Disconnected</strong></div>
+        <div class="metric"><span>Telemetry</span><strong id="telemetry">Waiting</strong></div>
       </article>
-
       <article class="card">
         <div class="card-title"><h3>Battery</h3><span>3S candidate</span></div>
         <div class="battery"><div id="batteryFill"></div></div>
-        <div class="metric"><span>Simulated charge</span><strong id="batteryText">82%</strong></div>
+        <div class="metric"><span>Charge</span><strong id="batteryText">--</strong></div>
       </article>
-
       <article class="card joints-card">
         <div class="card-title"><h3>Joint telemetry</h3><span>16 servos</span></div>
         <div id="joints" class="joint-list"></div>
       </article>
-
       <article class="card">
-        <div class="card-title"><h3>Sensors</h3><span>Prototype</span></div>
-        <div class="sensor"><span>🧭 IMU</span><strong id="imu">Stable</strong></div>
-        <div class="sensor"><span>📷 Camera</span><strong>Ready</strong></div>
-        <div class="sensor"><span>🦶 Foot contacts</span><strong id="feet">4 / 4</strong></div>
+        <div class="card-title"><h3>Sensors</h3><span>Live</span></div>
+        <div class="sensor"><span>🧭 IMU</span><strong id="imu">--</strong></div>
+        <div class="sensor"><span>📷 Camera</span><strong id="cameraState">Offline</strong></div>
+        <div class="sensor"><span>🦶 Foot contacts</span><strong id="feet">--</strong></div>
       </article>
     </section>
 
-    <section class="card log-card">
-      <div class="card-title"><h3>Event log</h3><button class="small" id="clearLog">Clear</button></div>
-      <div class="log" id="log"></div>
-    </section>
+    <section class="card log-card"><div class="card-title"><h3>Event log</h3><button class="small" id="clearLog">Clear</button></div><div class="log" id="log"></div></section>
   </main>
-
-  <footer>Ori software prototype • Browser simulation • No hardware commands</footer>
+  <footer>Ori Pilot • API control + live camera architecture • Hardware commands require a connected Pi</footer>
+  <script src="./api.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
