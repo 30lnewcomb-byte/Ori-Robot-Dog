@@ -26,9 +26,9 @@
       </div>
 
       <aside class="pilot-controls">
-        <div class="control-title"><span class="status-pill" id="systemStatus">SAFE</span><span id="controlMode">SIMULATION</span></div>
+        <div class="control-title"><span class="status-pill" id="systemStatus">SAFE</span><span id="controlSource">NO ACTIVE INPUT</span></div>
         <h2>Drive Ori</h2>
-        <p class="muted">Drone-style live-camera control. The browser sends movement intents to the Pi API; the Pi and Picos remain responsible for real-time motor control and safety.</p>
+        <p class="muted">The camera is your pilot view. Auto-pilot, browser control, and voice are input sources—not locked modes. Ori's Pi arbitrates them while the Picos keep real-time control and safety.</p>
         <div class="drive-pad" aria-label="drive controls">
           <button data-drive="forward" class="drive up">▲</button>
           <button data-drive="left" class="drive left">◀</button>
@@ -39,8 +39,11 @@
         <div class="actions">
           <button class="primary" id="standBtn">Stand</button>
           <button id="sitBtn">Sit</button>
+          <button id="autoBtn">Auto-pilot</button>
+          <button id="voiceBtn">🎙 Voice</button>
           <button class="danger" id="safeBtn">SAFE</button>
         </div>
+        <div class="voice-status" id="voiceStatus">Voice ready when supported by this browser.</div>
         <div class="api-row"><label for="apiBase">Pi API</label><input id="apiBase" value="http://ori.local:8000" spellcheck="false"><button id="connectBtn">Connect</button></div>
       </aside>
     </section>
@@ -48,9 +51,15 @@
     <section class="grid">
       <article class="card">
         <div class="card-title"><h3>System</h3><span class="dot good" id="systemDot"></span></div>
-        <div class="metric"><span>Mode</span><strong id="mode">SAFE</strong></div>
+        <div class="metric"><span>Safety</span><strong id="safetyState">SAFE</strong></div>
         <div class="metric"><span>Pi</span><strong id="piStatus">Disconnected</strong></div>
+        <div class="metric"><span>Active input</span><strong id="activeInput">None</strong></div>
         <div class="metric"><span>Telemetry</span><strong id="telemetry">Waiting</strong></div>
+      </article>
+      <article class="card">
+        <div class="card-title"><h3>Auto-pilot</h3><span id="autoState">Ready</span></div>
+        <div class="metric"><span>Planning</span><strong id="autoPlanning">Idle</strong></div>
+        <div class="metric"><span>Browser present</span><strong id="browserPresent">No</strong></div>
       </article>
       <article class="card">
         <div class="card-title"><h3>Battery</h3><span>3S candidate</span></div>
@@ -71,7 +80,7 @@
 
     <section class="card log-card"><div class="card-title"><h3>Event log</h3><button class="small" id="clearLog">Clear</button></div><div class="log" id="log"></div></section>
   </main>
-  <footer>Ori Pilot • API control + live camera architecture • Hardware commands require a connected Pi</footer>
+  <footer>Ori Pilot • live camera + API control • Auto-pilot, browser, and voice can coexist</footer>
   <script src="./api.js"></script>
   <script src="./app.js"></script>
 </body>
