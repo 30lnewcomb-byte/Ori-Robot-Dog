@@ -1,12 +1,9 @@
 """Ori Raspberry Pi 3 API and control coordinator.
 
-Run with: uvicorn software.ori.pi_server:app --host 0.0.0.0 --port 8000
-
 Control sources are concurrent inputs, not mutually-exclusive modes. Auto-pilot
 can remain active while browser or voice temporarily supplies a higher-priority
 intent. Pico controllers remain responsible for real-time actuation/watchdogs.
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -57,6 +54,7 @@ def snapshot() -> dict[str, Any]:
         "timestamp": time.time(),
         "safe": selected is not None and selected.source == "safety",
         "selected_source": selected.source if selected else None,
+        "source_presence": arbiter.presence(),
         **state,
     }
 
@@ -83,7 +81,6 @@ async def command(command: Command) -> dict[str, Any]:
     source = str(command.payload.pop("source", "browser")).lower()
     if source not in {"browser", "voice", "auto"}:
         raise HTTPException(400, "source must be browser, voice, or auto")
-
     if command.type == "safe":
         arbiter.safe()
     elif command.type == "auto_start":
@@ -100,7 +97,6 @@ async def command(command: Command) -> dict[str, Any]:
         arbiter.submit(source, command.type, command.payload, ttl_s=ttl)
     else:
         raise HTTPException(400, f"unknown command: {command.type}")
-
     await broadcast()
     selected = arbiter.select()
     return {"accepted": True, "selected_source": selected.source if selected else None}
@@ -136,8 +132,8 @@ async def source_heartbeat(heartbeat: SourceHeartbeat) -> dict[str, Any]:
     source = heartbeat.source.lower()
     if source not in {"browser", "voice", "auto"}:
         raise HTTPException(400, "invalid source")
-    arbiter.submit(source, "heartbeat", {}, ttl_s=heartbeat.ttl_s)
-    return {"accepted": True, "source": source}
+    arbiter.heartbeat(source, heartbeat.ttl_s)
+    return {"accepted": True, "source": source, "present": True}
 
 
 @app.websocket("/api/v1/telemetry")
