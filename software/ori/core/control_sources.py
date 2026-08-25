@@ -1,8 +1,8 @@
 """Arbitration for Ori's concurrent control sources.
 
-Ori does not have mutually-exclusive 'control modes'. Auto-pilot, browser
-pilot, and voice are input sources. A short-lived manual lease can temporarily
-own locomotion while auto-pilot continues running in the background.
+Auto-pilot, browser pilot, and voice are concurrent input sources, not
+mutually-exclusive robot modes. Presence is tracked separately from control
+intents so an open browser does not steal control from auto-pilot.
 """
 
 from dataclasses import dataclass
@@ -35,6 +35,7 @@ class ControlArbiter:
 
     def __init__(self) -> None:
         self._intents: dict[str, ControlIntent] = {}
+        self._presence: dict[str, float] = {}
         self._safe = True
 
     def submit(self, source: str, kind: str, payload: dict | None = None, ttl_s: float = 1.0) -> ControlIntent:
@@ -45,6 +46,14 @@ class ControlArbiter:
         elif source != "safety":
             self._safe = False
         return intent
+
+    def heartbeat(self, source: str, ttl_s: float = 1.5) -> None:
+        self._presence[source] = monotonic() + ttl_s
+
+    def presence(self) -> dict[str, bool]:
+        now = monotonic()
+        self._presence = {k: deadline for k, deadline in self._presence.items() if deadline > now}
+        return {k: True for k in self._presence}
 
     def clear(self, source: str) -> None:
         self._intents.pop(source, None)
