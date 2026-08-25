@@ -1,0 +1,20 @@
+{
+  "controllers": [
+    {
+      "id": "pico-1",
+      "role": "legs",
+      "joints": ["FL_HIP", "FL_KNEE", "FL_ANKLE", "FR_HIP", "FR_KNEE", "FR_ANKLE", "RL_HIP", "RL_KNEE", "RL_ANKLE", "RR_HIP", "RR_KNEE", "RR_ANKLE"]
+    },
+    {
+      "id": "pico-2",
+      "role": "arm_head",
+      "joints": ["ARM_YAW", "ARM_SHOULDER", "ARM_ELBOW", "WRIST_PITCH", "WRIST_ROLL", "GRIP", "HEAD_PAN", "HEAD_PITCH"]
+    },
+    {
+      "id": "pico-3",
+      "role": "io",
+      "joints": [],
+      "sensors": ["IMU", "FOOT_CONTACTS", "BATTERY_MONITOR", "AUX"]
+    }
+  ]
+}
