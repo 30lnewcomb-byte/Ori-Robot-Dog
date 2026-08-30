@@ -1,0 +1,4 @@
+# Local Ori Robotics model (Python 3.11)
+# Keep AI dependencies separate from the minimal Pi control stack.
+tensorflow>=2.20,<3
+numpy>=2.0,<3
